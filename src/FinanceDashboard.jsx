@@ -830,7 +830,7 @@ export default function FinanceDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex-1 w-full space-y-2">
-                  {byCategory.sort((a,b)=>b.value-a.value).map((c) => (
+                  {[...byCategory].sort((a,b)=>b.value-a.value).map((c) => (
                     <div key={c.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: CATEGORY_COLORS[c.name] || SLATE }} />
