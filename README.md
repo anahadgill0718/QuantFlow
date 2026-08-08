@@ -1,6 +1,26 @@
 # QuantFlow — Smart Budget & Expense Analytics
 
-An interactive personal finance dashboard built with React and Recharts, styled around a "quant terminal meets paper ledger" identity. Goes beyond simple tracking with pace-adjusted budget signals, month-end spend projections, and live spending insights — all computed from your actual data, not decorative.
+An interactive personal finance dashboard built with React and Recharts, styled around a "quant terminal meets paper ledger" identity. Goes beyond simple tracking with pace-adjusted budget signals, month-end spend projections, and live spending insights — all computed from your actual data, not decorative. Installable as a PWA on iOS and Android.
+
+## Live demo
+
+**[quantflowapp.com](https://quantflowapp.com)**
+
+## Install as an app
+
+QuantFlow is a Progressive Web App (PWA) — install it directly to your phone's home screen, no App Store required:
+
+**iOS (Safari):**
+1. Open [quantflowapp.com](https://quantflowapp.com) in Safari
+2. Tap the Share button
+3. Tap "Add to Home Screen"
+
+**Android (Chrome):**
+1. Open [quantflowapp.com](https://quantflowapp.com) in Chrome
+2. Tap the menu (⋮) in the top right
+3. Tap "Add to Home Screen" or "Install app"
+
+Once installed, it opens full-screen with its own icon, just like a native app.
 
 ## Features
 
@@ -39,6 +59,9 @@ An interactive personal finance dashboard built with React and Recharts, styled 
 - React
 - Recharts (data visualization)
 - Tailwind CSS (styling)
+- Progressive Web App (installable on iOS & Android)
+- Vercel Analytics
+- Deployed on Vercel
 
 ## Getting started
 
@@ -56,10 +79,9 @@ The app starts with sample data for the current month and the two before it. Add
 - Add real persistence (e.g. Firebase, Supabase, or a small Express + database backend) so data syncs across devices instead of living in one browser
 - Recurring transactions (e.g. auto-add rent each month)
 - Multi-user support with authentication
+- Native App Store / Google Play release
 
-## Live demo
 
-[Add your deployed link here after deploying]
 
 ## Screenshot
 <img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 19 41 PM" src="https://github.com/user-attachments/assets/c19369ac-6fde-436c-a31d-4cbd4d86a3cc" />
@@ -67,6 +89,8 @@ The app starts with sample data for the current month and the two before it. Add
 <img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 20 04 PM" src="https://github.com/user-attachments/assets/86e15f1f-d40c-409e-b893-f268c99c5c8b" />
 
 
+
 ## Author
 
 Created by Anahad Gill
+
