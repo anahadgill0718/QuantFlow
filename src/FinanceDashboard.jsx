@@ -32,65 +32,69 @@ const DEFAULT_BUDGETS = {
 };
 
 // ---------- Sample data (used only until the user adds real transactions) ----------
-const SAMPLE_BLOCKS = [
-  {
-    income: [{ d: "01", m: "Part-time payroll", a: 640 }, { d: "15", m: "Part-time payroll", a: 640 }],
-    expenses: [
-      { d: "01", m: "Maple Court Rent", c: "Housing", a: 650 },
-      { d: "03", m: "Trader Joe's", c: "Groceries", a: 61 },
-      { d: "05", m: "Campus Shuttle Pass", c: "Transport", a: 45 },
-      { d: "06", m: "Spotify", c: "Subscriptions", a: 12 },
-      { d: "08", m: "Noodle House", c: "Dining", a: 22 },
-      { d: "10", m: "Safeway", c: "Groceries", a: 58 },
-      { d: "12", m: "AMC Tickets", c: "Entertainment", a: 34 },
-      { d: "14", m: "Uber", c: "Transport", a: 18 },
-      { d: "16", m: "Chipotle", c: "Dining", a: 14 },
-      { d: "18", m: "iCloud+", c: "Subscriptions", a: 3 },
-      { d: "20", m: "Safeway", c: "Groceries", a: 47 },
-      { d: "22", m: "Bowling Night", c: "Entertainment", a: 26 },
-      { d: "25", m: "Ramen Bar", c: "Dining", a: 19 },
-      { d: "28", m: "Transfer to Savings", c: "Savings", a: 150 },
-    ],
-  },
-  {
-    income: [{ d: "01", m: "Part-time payroll", a: 640 }, { d: "15", m: "Part-time payroll", a: 640 }, { d: "20", m: "Freelance tutoring", a: 90 }],
-    expenses: [
-      { d: "01", m: "Maple Court Rent", c: "Housing", a: 650 },
-      { d: "02", m: "Trader Joe's", c: "Groceries", a: 66 },
-      { d: "04", m: "Campus Shuttle Pass", c: "Transport", a: 45 },
-      { d: "06", m: "Spotify", c: "Subscriptions", a: 12 },
-      { d: "07", m: "Pho 79", c: "Dining", a: 17 },
-      { d: "09", m: "Costco Run", c: "Groceries", a: 74 },
-      { d: "11", m: "Concert Tickets", c: "Entertainment", a: 55 },
-      { d: "13", m: "Lyft", c: "Transport", a: 21 },
-      { d: "16", m: "Chipotle", c: "Dining", a: 15 },
-      { d: "18", m: "iCloud+", c: "Subscriptions", a: 3 },
-      { d: "21", m: "Safeway", c: "Groceries", a: 52 },
-      { d: "24", m: "Arcade Night", c: "Entertainment", a: 18 },
-      { d: "26", m: "Thai Terrace", c: "Dining", a: 28 },
-      { d: "29", m: "Transfer to Savings", c: "Savings", a: 180 },
-    ],
-  },
-  {
-    income: [{ d: "01", m: "Part-time payroll", a: 640 }, { d: "15", m: "Part-time payroll", a: 640 }],
-    expenses: [
-      { d: "01", m: "Maple Court Rent", c: "Housing", a: 650 },
-      { d: "02", m: "Trader Joe's", c: "Groceries", a: 59 },
-      { d: "03", m: "Campus Shuttle Pass", c: "Transport", a: 45 },
-      { d: "06", m: "Spotify", c: "Subscriptions", a: 12 },
-      { d: "07", m: "Noodle House", c: "Dining", a: 24 },
-      { d: "10", m: "Safeway", c: "Groceries", a: 63 },
-      { d: "12", m: "Movie Night", c: "Entertainment", a: 21 },
-      { d: "14", m: "Uber", c: "Transport", a: 16 },
-      { d: "17", m: "Ramen Bar", c: "Dining", a: 20 },
-      { d: "18", m: "iCloud+", c: "Subscriptions", a: 3 },
-      { d: "21", m: "Costco Run", c: "Groceries", a: 71 },
-      { d: "23", m: "Mini Golf", c: "Entertainment", a: 30 },
-      { d: "25", m: "Thai Terrace", c: "Dining", a: 26 },
-      { d: "27", m: "Transfer to Savings", c: "Savings", a: 200 },
-    ],
-  },
-];
+// Deterministic per-month generator so sample data exists for ANY month/year you
+// navigate to, not just the initial 3 — while staying consistent if you revisit it.
+function hashStr(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed) {
+  let a = seed;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const SAMPLE_MERCHANTS = {
+  Housing: ["Maple Court Rent"],
+  Groceries: ["Trader Joe's", "Safeway", "Costco Run"],
+  Dining: ["Noodle House", "Ramen Bar", "Thai Terrace", "Chipotle", "Pho 79"],
+  Transport: ["Campus Shuttle Pass", "Uber", "Lyft"],
+  Subscriptions: ["Spotify", "iCloud+"],
+  Entertainment: ["AMC Tickets", "Bowling Night", "Arcade Night", "Mini Golf", "Concert Tickets"],
+  Savings: ["Transfer to Savings"],
+};
+const SAMPLE_BASE_AMOUNTS = { Housing: 650, Groceries: 60, Dining: 20, Transport: 20, Subscriptions: 8, Entertainment: 25, Savings: 175 };
+const SAMPLE_DAYS = {
+  Housing: ["01"], Groceries: ["03", "10", "20"], Dining: ["07", "16", "25"],
+  Transport: ["05", "14"], Subscriptions: ["06", "18"], Entertainment: ["12", "22"], Savings: ["28"],
+};
+
+function generateSampleMonth(monthLabel) {
+  const rand = mulberry32(hashStr(monthLabel));
+  const jitter = (base, pct) => Math.max(1, Math.round(base * (1 + (rand() * 2 - 1) * pct)));
+
+  const income = [
+    { id: `demo-${monthLabel}-inc1`, d: "01", m: "Part-time payroll", a: jitter(640, 0.05) },
+    { id: `demo-${monthLabel}-inc2`, d: "15", m: "Part-time payroll", a: jitter(640, 0.05) },
+  ];
+  if (rand() > 0.6) {
+    income.push({ id: `demo-${monthLabel}-inc3`, d: "20", m: "Freelance tutoring", a: jitter(90, 0.3) });
+  }
+
+  const expenses = [];
+  Object.entries(SAMPLE_MERCHANTS).forEach(([cat, names]) => {
+    SAMPLE_DAYS[cat].forEach((day, i) => {
+      const name = names[Math.floor(rand() * names.length)];
+      expenses.push({
+        id: `demo-${monthLabel}-${cat}-${i}`,
+        d: day,
+        m: name,
+        c: cat,
+        a: jitter(SAMPLE_BASE_AMOUNTS[cat], 0.25),
+      });
+    });
+  });
+
+  return { income, expenses };
+}
 
 // Returns the anchor month plus the two before it, e.g. ["Jun 2026", "Jul 2026", "Aug 2026"]
 function getRollingMonths(anchor = new Date()) {
@@ -136,17 +140,14 @@ function parseCSV(text) {
 
 function buildSampleData(monthKeys) {
   const out = {};
-  monthKeys.forEach((key, i) => {
-    const block = SAMPLE_BLOCKS[i];
-    out[key] = {
-      income: block.income.map((r, j) => ({ ...r, id: `sample-${i}-inc-${j}` })),
-      expenses: block.expenses.map((r, j) => ({ ...r, id: `sample-${i}-exp-${j}` })),
-    };
+  monthKeys.forEach((key) => {
+    out[key] = generateSampleMonth(key);
   });
   return out;
 }
 
 const STORAGE_KEY = "financeDashboard_v1";
+
 
 function loadInitialState(defaultMonthKeys) {
   try {
@@ -296,7 +297,7 @@ export default function FinanceDashboard() {
   };
 
   const month = MONTHS[monthIdx];
-  const data = ledgerData[month] || { income: [], expenses: [] };
+  const data = ledgerData[month] || (isSample ? generateSampleMonth(month) : { income: [], expenses: [] });
 
   useEffect(() => {
     try {
@@ -322,12 +323,12 @@ export default function FinanceDashboard() {
 
   const trend = useMemo(() => {
     return MONTHS.map((m) => {
-      const monthData = ledgerData[m] || { income: [], expenses: [] };
+      const monthData = ledgerData[m] || (isSample ? generateSampleMonth(m) : { income: [], expenses: [] });
       const inc = monthData.income.reduce((s, r) => s + r.a, 0);
       const exp = monthData.expenses.reduce((s, r) => s + r.a, 0);
       return { month: m.split(" ")[0], Income: inc, Expenses: exp };
     });
-  }, [ledgerData, MONTHS]);
+  }, [ledgerData, MONTHS, isSample]);
 
   const ledger = useMemo(() => {
     const rows = [
@@ -362,7 +363,7 @@ export default function FinanceDashboard() {
     const incomeSeries = trend.map((t) => t.Income);
     const expenseSeries = trend.map((t) => t.Expenses);
     const savingsSeries = MONTHS.map((m) => {
-      const md = ledgerData[m] || { expenses: [] };
+      const md = ledgerData[m] || (isSample ? generateSampleMonth(m) : { expenses: [] });
       return md.expenses.filter((r) => r.c === "Savings").reduce((s, r) => s + r.a, 0);
     });
 
@@ -399,13 +400,13 @@ export default function FinanceDashboard() {
       projected,
       projPct,
     };
-  }, [trend, MONTHS, ledgerData, monthIdx, totals, month, budgets]);
+  }, [trend, MONTHS, ledgerData, monthIdx, totals, month, budgets, isSample]);
 
   const insight = useMemo(() => {
     if (byCategory.length === 0) return null;
     const top = [...byCategory].sort((a, b) => b.value - a.value)[0];
     const prevMonth = monthIdx > 0 ? MONTHS[monthIdx - 1] : null;
-    const prevData = prevMonth ? ledgerData[prevMonth] : null;
+    const prevData = prevMonth ? (ledgerData[prevMonth] || (isSample ? generateSampleMonth(prevMonth) : null)) : null;
     const prevExpenses = prevData ? prevData.expenses.reduce((s, r) => s + r.a, 0) : 0;
 
     if (prevMonth && prevExpenses > 0) {
@@ -419,7 +420,7 @@ export default function FinanceDashboard() {
       return `Spending is holding steady with ${prevMonth.split(" ")[0]}. ${top.name} remains the biggest category.`;
     }
     return `${top.name} is your biggest expense this month at ${fmt(top.value)}.`;
-  }, [byCategory, totals, monthIdx, MONTHS, ledgerData]);
+  }, [byCategory, totals, monthIdx, MONTHS, ledgerData, isSample]);
 
   const handleAddTransaction = (e) => {
     e.preventDefault();
@@ -641,8 +642,9 @@ export default function FinanceDashboard() {
               {[...byCategory, ...byCategory].map((c, i) => {
                 const pct = totals.expenses ? Math.round((c.value / totals.expenses) * 100) : 0;
                 const prevMonth = monthIdx > 0 ? MONTHS[monthIdx - 1] : null;
-                const prevVal = prevMonth
-                  ? (ledgerData[prevMonth]?.expenses || []).filter((r) => r.c === c.name).reduce((s, r) => s + r.a, 0)
+                const prevMonthData = prevMonth ? (ledgerData[prevMonth] || (isSample ? generateSampleMonth(prevMonth) : null)) : null;
+                const prevVal = prevMonthData
+                  ? (prevMonthData.expenses || []).filter((r) => r.c === c.name).reduce((s, r) => s + r.a, 0)
                   : 0;
                 const delta = prevVal ? Math.round(((c.value - prevVal) / prevVal) * 100) : null;
                 const up = delta !== null && delta > 0;
