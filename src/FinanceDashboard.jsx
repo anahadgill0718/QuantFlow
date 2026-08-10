@@ -3,7 +3,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-
+ 
 // ---------- Design tokens ----------
 const INK = "#12181F";
 const INK_SOFT = "#1C242E";
@@ -14,7 +14,7 @@ const BRASS = "#C9A24B";
 const SLATE = "#8B97A3";
 const PLUM = "#8B7BAE";
 const TEAL = "#5B8C87";
-
+ 
 const CATEGORY_COLORS = {
   Housing: BRASS,
   Groceries: JADE,
@@ -24,13 +24,13 @@ const CATEGORY_COLORS = {
   Entertainment: TEAL,
   Savings: "#2F7D6E",
 };
-
+ 
 // ---------- Default budget limits (user-editable, saved to this browser) ----------
 const DEFAULT_BUDGETS = {
   Housing: 650, Groceries: 220, Dining: 120, Transport: 90,
   Subscriptions: 45, Entertainment: 80, Savings: 200,
 };
-
+ 
 // ---------- Sample data (used only until the user adds real transactions) ----------
 // Deterministic per-month generator so sample data exists for ANY month/year you
 // navigate to, not just the initial 3 — while staying consistent if you revisit it.
@@ -41,7 +41,7 @@ function hashStr(str) {
   }
   return h >>> 0;
 }
-
+ 
 function mulberry32(seed) {
   let a = seed;
   return function () {
@@ -51,7 +51,7 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-
+ 
 const SAMPLE_MERCHANTS = {
   Housing: ["Maple Court Rent"],
   Groceries: ["Trader Joe's", "Safeway", "Costco Run"],
@@ -66,11 +66,11 @@ const SAMPLE_DAYS = {
   Housing: ["01"], Groceries: ["03", "10", "20"], Dining: ["07", "16", "25"],
   Transport: ["05", "14"], Subscriptions: ["06", "18"], Entertainment: ["12", "22"], Savings: ["28"],
 };
-
+ 
 function generateSampleMonth(monthLabel) {
   const rand = mulberry32(hashStr(monthLabel));
   const jitter = (base, pct) => Math.max(1, Math.round(base * (1 + (rand() * 2 - 1) * pct)));
-
+ 
   const income = [
     { id: `demo-${monthLabel}-inc1`, d: "01", m: "Part-time payroll", a: jitter(640, 0.05) },
     { id: `demo-${monthLabel}-inc2`, d: "15", m: "Part-time payroll", a: jitter(640, 0.05) },
@@ -78,7 +78,7 @@ function generateSampleMonth(monthLabel) {
   if (rand() > 0.6) {
     income.push({ id: `demo-${monthLabel}-inc3`, d: "20", m: "Freelance tutoring", a: jitter(90, 0.3) });
   }
-
+ 
   const expenses = [];
   Object.entries(SAMPLE_MERCHANTS).forEach(([cat, names]) => {
     SAMPLE_DAYS[cat].forEach((day, i) => {
@@ -92,10 +92,10 @@ function generateSampleMonth(monthLabel) {
       });
     });
   });
-
+ 
   return { income, expenses };
 }
-
+ 
 // Returns the anchor month plus the two before it, e.g. ["Jun 2026", "Jul 2026", "Aug 2026"]
 function getRollingMonths(anchor = new Date()) {
   const out = [];
@@ -105,16 +105,16 @@ function getRollingMonths(anchor = new Date()) {
   }
   return out;
 }
-
+ 
 // e.g. new Date(2026, 2, 17) -> "Mar 2026"
 function monthLabelFor(date) {
   return date.toLocaleString("default", { month: "short", year: "numeric" });
 }
-
+ 
 function newId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
-
+ 
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -137,7 +137,7 @@ function parseCSV(text) {
   if (field !== "" || row.length) { row.push(field); rows.push(row); }
   return rows.filter((r) => r.length && r.some((v) => v !== ""));
 }
-
+ 
 function buildSampleData(monthKeys) {
   const out = {};
   monthKeys.forEach((key) => {
@@ -145,10 +145,10 @@ function buildSampleData(monthKeys) {
   });
   return out;
 }
-
+ 
 const STORAGE_KEY = "financeDashboard_v1";
-
-
+ 
+ 
 function loadInitialState(defaultMonthKeys) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -167,10 +167,10 @@ function loadInitialState(defaultMonthKeys) {
   }
   return { ledgerData: buildSampleData(defaultMonthKeys), isSample: true, budgets: DEFAULT_BUDGETS };
 }
-
+ 
 const fmt = (n) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-
+ 
 function TornEdge({ flip }) {
   return (
     <div
@@ -184,7 +184,7 @@ function TornEdge({ flip }) {
     />
   );
 }
-
+ 
 function Sparkline({ values, color, width = 72, height = 28 }) {
   if (!values || values.length < 2) return null;
   const max = Math.max(...values, 1);
@@ -201,7 +201,7 @@ function Sparkline({ values, color, width = 72, height = 28 }) {
     </svg>
   );
 }
-
+ 
 function BackgroundArt() {
   const ticks = [180, 340, 500, 660, 820, 980, 1140, 1300, 1460];
   return (
@@ -262,7 +262,7 @@ function BackgroundArt() {
     </div>
   );
 }
-
+ 
 export default function FinanceDashboard() {
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const MONTHS = useMemo(() => getRollingMonths(anchorDate), [anchorDate]);
@@ -289,16 +289,16 @@ export default function FinanceDashboard() {
   const [toast, setToast] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const toastTimeoutRef = useRef(null);
-
+ 
   const showToast = (message, undo) => {
     setToast({ message, undo });
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     toastTimeoutRef.current = setTimeout(() => setToast(null), 5000);
   };
-
+ 
   const month = MONTHS[monthIdx];
   const data = ledgerData[month] || (isSample ? generateSampleMonth(month) : { income: [], expenses: [] });
-
+ 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: ledgerData, isSample, budgets }));
@@ -306,7 +306,7 @@ export default function FinanceDashboard() {
       // localStorage unavailable — data just won't persist between sessions
     }
   }, [ledgerData, isSample, budgets]);
-
+ 
   const totals = useMemo(() => {
     const income = data.income.reduce((s, r) => s + r.a, 0);
     const expenses = data.expenses.reduce((s, r) => s + r.a, 0);
@@ -314,13 +314,13 @@ export default function FinanceDashboard() {
     const savingsRate = income ? Math.round((net / income) * 100) : 0;
     return { income, expenses, net, savingsRate };
   }, [data]);
-
+ 
   const byCategory = useMemo(() => {
     const map = {};
     data.expenses.forEach((r) => { map[r.c] = (map[r.c] || 0) + r.a; });
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [data]);
-
+ 
   const trend = useMemo(() => {
     return MONTHS.map((m) => {
       const monthData = ledgerData[m] || (isSample ? generateSampleMonth(m) : { income: [], expenses: [] });
@@ -329,7 +329,7 @@ export default function FinanceDashboard() {
       return { month: m.split(" ")[0], Income: inc, Expenses: exp };
     });
   }, [ledgerData, MONTHS, isSample]);
-
+ 
   const ledger = useMemo(() => {
     const rows = [
       ...data.income.map((r) => ({ ...r, type: "in" })),
@@ -337,18 +337,18 @@ export default function FinanceDashboard() {
     ];
     return rows.sort((a, b) => a.d.localeCompare(b.d));
   }, [data]);
-
+ 
   const filteredLedger = useMemo(() => {
     if (!searchQuery.trim()) return ledger;
     const q = searchQuery.trim().toLowerCase();
     return ledger.filter((r) => r.m.toLowerCase().includes(q) || (r.c || "").toLowerCase().includes(q));
   }, [ledger, searchQuery]);
-
+ 
   const handleDateChange = (newDateStr) => {
     setForm((f) => ({ ...f, date: newDateStr }));
     const picked = new Date(newDateStr + "T00:00:00");
     const pickedLabel = monthLabelFor(picked);
-
+ 
     const existingIdx = MONTHS.indexOf(pickedLabel);
     if (existingIdx !== -1) {
       setMonthIdx(existingIdx);
@@ -358,7 +358,7 @@ export default function FinanceDashboard() {
       setMonthIdx(2);
     }
   };
-
+ 
   const quant = useMemo(() => {
     const incomeSeries = trend.map((t) => t.Income);
     const expenseSeries = trend.map((t) => t.Expenses);
@@ -366,17 +366,17 @@ export default function FinanceDashboard() {
       const md = ledgerData[m] || (isSample ? generateSampleMonth(m) : { expenses: [] });
       return md.expenses.filter((r) => r.c === "Savings").reduce((s, r) => s + r.a, 0);
     });
-
+ 
     const avg = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
     const stdev = (arr) => {
       const m = avg(arr);
       return Math.sqrt(avg(arr.map((v) => (v - m) ** 2)));
     };
-
+ 
     const prevExpense = monthIdx > 0 ? expenseSeries[monthIdx - 1] : null;
     const prevIncome = monthIdx > 0 ? incomeSeries[monthIdx - 1] : null;
     const pctDelta = (curr, prev) => (prev ? Math.round(((curr - prev) / prev) * 100) : null);
-
+ 
     const today = new Date();
     const isCurrentMonth = month === monthLabelFor(today);
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -385,7 +385,7 @@ export default function FinanceDashboard() {
     const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
     const projected = isCurrentMonth && daysElapsed > 0 ? (totals.expenses / daysElapsed) * daysInMonth : totals.expenses;
     const projPct = totalBudget ? Math.round(((projected - totalBudget) / totalBudget) * 100) : 0;
-
+ 
     return {
       incomeSeries,
       expenseSeries,
@@ -401,14 +401,14 @@ export default function FinanceDashboard() {
       projPct,
     };
   }, [trend, MONTHS, ledgerData, monthIdx, totals, month, budgets, isSample]);
-
+ 
   const insight = useMemo(() => {
     if (byCategory.length === 0) return null;
     const top = [...byCategory].sort((a, b) => b.value - a.value)[0];
     const prevMonth = monthIdx > 0 ? MONTHS[monthIdx - 1] : null;
     const prevData = prevMonth ? (ledgerData[prevMonth] || (isSample ? generateSampleMonth(prevMonth) : null)) : null;
     const prevExpenses = prevData ? prevData.expenses.reduce((s, r) => s + r.a, 0) : 0;
-
+ 
     if (prevMonth && prevExpenses > 0) {
       const diffPct = Math.round(((totals.expenses - prevExpenses) / prevExpenses) * 100);
       if (diffPct > 4) {
@@ -421,7 +421,7 @@ export default function FinanceDashboard() {
     }
     return `${top.name} is your biggest expense this month at ${fmt(top.value)}.`;
   }, [byCategory, totals, monthIdx, MONTHS, ledgerData, isSample]);
-
+ 
   const handleAddTransaction = (e) => {
     e.preventDefault();
     const amt = parseFloat(form.amount.replace(/,/g, ""));
@@ -434,16 +434,16 @@ export default function FinanceDashboard() {
       return;
     }
     setFormError(null);
-
+ 
     const dayOfMonth = String(new Date(form.date + "T00:00:00").getDate()).padStart(2, "0");
     const entry = { id: newId(), d: dayOfMonth, m: form.merchant.trim(), a: Math.round(amt * 100) / 100 };
-
+ 
     setLedgerData((prev) => {
       // First real transaction clears the sample data so it doesn't confuse the numbers
       const base = isSample
         ? MONTHS.reduce((acc, key) => ({ ...acc, [key]: { income: [], expenses: [] } }), {})
         : prev;
-
+ 
       const current = base[month] || { income: [], expenses: [] };
       const next = { ...base, [month]: { income: [...current.income], expenses: [...current.expenses] } };
       if (form.type === "income") {
@@ -453,26 +453,26 @@ export default function FinanceDashboard() {
       }
       return next;
     });
-
+ 
     if (isSample) setIsSample(false);
-
+ 
     setForm((f) => ({ merchant: "", category: CATEGORIES[0], amount: "", type: "expense", date: f.date }));
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
   };
-
+ 
   const handleLoadSample = () => {
     setAnchorDate(new Date());
     setMonthIdx(2);
     setLedgerData(buildSampleData(getRollingMonths(new Date())));
     setIsSample(true);
   };
-
+ 
   const startEditingBudget = (cat) => {
     setEditingCat(cat);
     setEditValue(String(budgets[cat]));
   };
-
+ 
   const saveBudgetEdit = (cat) => {
     const val = parseFloat(editValue.replace(/,/g, ""));
     if (!isNaN(val) && val >= 0) {
@@ -480,7 +480,7 @@ export default function FinanceDashboard() {
     }
     setEditingCat(null);
   };
-
+ 
   const handleDeleteTransaction = (id, type) => {
     setLedgerData((prev) => {
       const cur = prev[month] || { income: [], expenses: [] };
@@ -499,12 +499,12 @@ export default function FinanceDashboard() {
       return next;
     });
   };
-
+ 
   const startEditingTx = (r) => {
     setEditingTxId(r.id);
     setEditTxForm({ merchant: r.m, amount: String(r.a), category: r.c || CATEGORIES[0] });
   };
-
+ 
   const saveTxEdit = (id, type) => {
     const amt = parseFloat(editTxForm.amount.replace(/,/g, ""));
     if (!editTxForm.merchant.trim() || isNaN(amt) || amt <= 0) {
@@ -523,7 +523,7 @@ export default function FinanceDashboard() {
     });
     setEditingTxId(null);
   };
-
+ 
   const handleExportCSV = () => {
     const rows = [["Month", "Date", "Type", "Category", "Merchant", "Amount"]];
     Object.keys(ledgerData).sort().forEach((m) => {
@@ -540,7 +540,7 @@ export default function FinanceDashboard() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
+ 
   const handleAddCategory = (e) => {
     e.preventDefault();
     const name = newCatName.trim();
@@ -550,7 +550,7 @@ export default function FinanceDashboard() {
     setNewCatName("");
     setNewCatLimit("");
   };
-
+ 
   const handleRemoveCategory = (cat) => {
     if (CATEGORIES.length <= 1) return;
     setBudgets((prev) => {
@@ -559,7 +559,7 @@ export default function FinanceDashboard() {
       return next;
     });
   };
-
+ 
   const handleImportCSV = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -594,7 +594,7 @@ export default function FinanceDashboard() {
     };
     reader.readAsText(file);
   };
-
+ 
   return (
     <div style={{ minHeight: "100vh", color: PAPER, position: "relative" }} className="font-sans">
       {toast && (
@@ -631,7 +631,7 @@ export default function FinanceDashboard() {
       `}</style>
       <BackgroundArt />
       <div className="max-w-6xl mx-auto px-6 py-10" style={{ position: "relative", zIndex: 1 }}>
-
+ 
         {/* Quant ticker strip */}
         {byCategory.length > 0 && (
           <div
@@ -665,7 +665,7 @@ export default function FinanceDashboard() {
             </div>
           </div>
         )}
-
+ 
         {/* Header */}
         <div className="flex items-baseline justify-between flex-wrap gap-4 mb-8">
           <div>
@@ -688,7 +688,7 @@ export default function FinanceDashboard() {
             ))}
           </div>
         </div>
-
+ 
         <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -722,7 +722,7 @@ export default function FinanceDashboard() {
             </button>
           </div>
         </div>
-
+ 
         {isSample && (
           <div
             className="rounded-lg px-4 py-3 mb-4 text-sm flex items-center justify-between gap-4 flex-wrap"
@@ -731,7 +731,7 @@ export default function FinanceDashboard() {
             <span>You're viewing sample data — add a transaction below and it'll replace these numbers.</span>
           </div>
         )}
-
+ 
         {insight && (
           <div
             className="qf-card rounded-lg px-4 py-3 mb-6 text-sm flex items-center gap-3"
@@ -741,7 +741,7 @@ export default function FinanceDashboard() {
             <span style={{ color: PAPER }}>{insight}</span>
           </div>
         )}
-
+ 
         {/* Hero balance */}
         <div
           className="qf-card rounded-2xl p-8 mb-8"
@@ -757,7 +757,7 @@ export default function FinanceDashboard() {
             </div>
           </div>
         </div>
-
+ 
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
@@ -791,7 +791,7 @@ export default function FinanceDashboard() {
             </div>
           ))}
         </div>
-
+ 
         {/* Quant stats strip */}
         <div className="flex flex-wrap gap-x-8 gap-y-2 mb-10 px-1">
           <div className="font-mono text-xs" style={{ color: SLATE }}>
@@ -813,11 +813,11 @@ export default function FinanceDashboard() {
             </div>
           )}
         </div>
-
+ 
         <div className="grid md:grid-cols-5 gap-8">
           {/* Left column: charts */}
           <div className="md:col-span-3 space-y-8">
-
+ 
             <div className="qf-card rounded-xl p-6" style={{ background: "rgba(28,36,46,0.55)", backdropFilter: "blur(10px)", border: "1px solid #2A3440", animationDelay: "280ms" }}>
               <h2 className="font-serif text-xl mb-4" style={{ color: PAPER }}>Where it went — {month}</h2>
               <div className="flex flex-col md:flex-row items-center gap-6">
@@ -844,7 +844,7 @@ export default function FinanceDashboard() {
                 </div>
               </div>
             </div>
-
+ 
             <div className="qf-card rounded-xl p-6" style={{ background: "rgba(28,36,46,0.55)", backdropFilter: "blur(10px)", border: "1px solid #2A3440", animationDelay: "320ms" }}>
               <h2 className="font-serif text-xl mb-4" style={{ color: PAPER }}>Income vs. expenses, 3-month trend</h2>
               <ResponsiveContainer width="100%" height={240}>
@@ -859,7 +859,7 @@ export default function FinanceDashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-
+ 
             <div className="qf-card rounded-xl p-6" style={{ background: "rgba(28,36,46,0.55)", backdropFilter: "blur(10px)", border: "1px solid #2A3440", animationDelay: "360ms" }}>
               <h2 className="font-serif text-xl mb-4" style={{ color: PAPER }}>Budget vs. actual — {month}</h2>
               <div className="space-y-4">
@@ -930,7 +930,7 @@ export default function FinanceDashboard() {
                   );
                 })}
               </div>
-
+ 
               <form onSubmit={handleAddCategory} className="flex items-center gap-2 mt-5 pt-4 border-t" style={{ borderColor: "#2A3440" }}>
                 <input
                   type="text"
@@ -961,7 +961,7 @@ export default function FinanceDashboard() {
               </form>
             </div>
           </div>
-
+ 
           {/* Right column: receipt-style ledger */}
           <div className="md:col-span-2 qf-card" style={{ animationDelay: "200ms" }}>
             <div className="rounded-t-md overflow-hidden" style={{ background: PAPER }}>
@@ -972,7 +972,7 @@ export default function FinanceDashboard() {
                 * * * QUANTFLOW * * *
               </div>
               <div className="text-center font-serif text-lg mb-4">{month}</div>
-
+ 
               <form onSubmit={handleAddTransaction} className="mb-5 pb-5 border-b border-dashed" style={{ borderColor: "#B9AF9E" }}>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <button
@@ -1000,7 +1000,7 @@ export default function FinanceDashboard() {
                     Income
                   </button>
                 </div>
-
+ 
                 <input
                   type="text"
                   placeholder="Merchant or source"
@@ -1009,7 +1009,7 @@ export default function FinanceDashboard() {
                   className="w-full text-sm font-mono mb-2 px-2 py-1.5 rounded outline-none"
                   style={{ background: "#EDE6D6", color: INK, border: "1px solid #B9AF9E" }}
                 />
-
+ 
                 <input
                   type="date"
                   value={form.date}
@@ -1017,7 +1017,7 @@ export default function FinanceDashboard() {
                   className="w-full text-sm font-mono mb-2 px-2 py-1.5 rounded outline-none"
                   style={{ background: "#EDE6D6", color: INK, border: "1px solid #B9AF9E" }}
                 />
-
+ 
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <input
                     type="text"
@@ -1049,11 +1049,11 @@ export default function FinanceDashboard() {
                     <div className="flex items-center text-xs" style={{ color: "#8A8072" }}>logged as income</div>
                   )}
                 </div>
-
+ 
                 {formError && (
                   <div className="text-xs mb-2" style={{ color: "#7A2E24" }}>{formError}</div>
                 )}
-
+ 
                 <button
                   type="submit"
                   className="w-full text-sm font-mono py-2 rounded uppercase tracking-wide"
@@ -1062,7 +1062,7 @@ export default function FinanceDashboard() {
                   {justAdded ? "Added ✓" : `+ Add to ${month}`}
                 </button>
               </form>
-
+ 
               <input
                 type="text"
                 placeholder="Search transactions..."
@@ -1071,7 +1071,7 @@ export default function FinanceDashboard() {
                 className="w-full text-xs font-mono mb-3 px-2 py-1.5 rounded outline-none"
                 style={{ background: "#EDE6D6", color: INK, border: "1px solid #B9AF9E" }}
               />
-
+ 
               <div className="space-y-2 font-mono text-xs">
                 {filteredLedger.length === 0 && (
                   <div className="text-center py-2" style={{ color: "#8A8072" }}>No matching transactions.</div>
@@ -1153,7 +1153,7 @@ export default function FinanceDashboard() {
             </div>
           </div>
         </div>
-
+ 
         <div className="text-center text-xs mt-10" style={{ color: "#3F4A56" }}>
           {isSample ? "Sample data" : "Your data, saved locally in this browser"} · built with React &amp; Recharts
         </div>
@@ -1164,3 +1164,4 @@ export default function FinanceDashboard() {
     </div>
   );
 }
+ 
