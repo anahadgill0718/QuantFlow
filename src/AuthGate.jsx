@@ -53,9 +53,15 @@ function TornEdge({ flip }) {
 }
 
 export default function AuthGate() {
-  const [mode, setMode] = useState("signin");
+  const [mode, setMode] = useState(() => {
+    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+      return "reset";
+    }
+    return "signin";
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -69,16 +75,35 @@ export default function AuthGate() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else {
+      } else if (mode === "signup") {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setInfo("Check your email to confirm your account, then sign in.");
+      } else if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setInfo("Check your email for a password reset link.");
+      } else if (mode === "reset") {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+        setInfo("Password updated. You can now use it to sign in.");
+        window.history.replaceState(null, "", window.location.pathname);
+        setTimeout(() => setMode("signin"), 1500);
       }
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const statusText = {
+    signin: "SECURE ACCESS — VERIFYING CREDENTIALS",
+    signup: "NEW ACCOUNT — ENCRYPTED SIGNUP",
+    forgot: "PASSWORD RECOVERY — SENDING RESET LINK",
+    reset: "PASSWORD RECOVERY — SET NEW PASSWORD",
   };
 
   return (
@@ -112,21 +137,45 @@ export default function AuthGate() {
             <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: JADE }} />
           </span>
           <span className="font-mono text-xs tracking-wider" style={{ color: SLATE }}>
-            {mode === "signin" ? "SECURE ACCESS — VERIFYING CREDENTIALS" : "NEW ACCOUNT — ENCRYPTED SIGNUP"}
+            {statusText[mode]}
           </span>
         </div>
 
         <div className="qf-card rounded-2xl overflow-hidden" style={{ background: "rgba(28,36,46,0.55)", backdropFilter: "blur(10px)", border: "1px solid #2A3440" }}>
           <form onSubmit={handleSubmit} className="p-8">
-            <label className="block mb-4">
-              <span className="block text-xs tracking-[0.15em] uppercase mb-2" style={{ color: SLATE }}>Email</span>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="w-full rounded-lg px-4 py-3 text-sm font-mono outline-none" style={{ background: "rgba(18,24,31,0.7)", border: "1px solid #2A3440", color: PAPER }} />
-            </label>
+            {mode !== "reset" && (
+              <label className="block mb-4">
+                <span className="block text-xs tracking-[0.15em] uppercase mb-2" style={{ color: SLATE }}>Email</span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="w-full rounded-lg px-4 py-3 text-sm font-mono outline-none" style={{ background: "rgba(18,24,31,0.7)", border: "1px solid #2A3440", color: PAPER }} />
+              </label>
+            )}
 
-            <label className="block mb-5">
-              <span className="block text-xs tracking-[0.15em] uppercase mb-2" style={{ color: SLATE }}>Password</span>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={mode === "signin" ? "current-password" : "new-password"} className="w-full rounded-lg px-4 py-3 text-sm font-mono outline-none" style={{ background: "rgba(18,24,31,0.7)", border: "1px solid #2A3440", color: PAPER }} />
-            </label>
+            {(mode === "signin" || mode === "signup") && (
+              <label className="block mb-2">
+                <span className="block text-xs tracking-[0.15em] uppercase mb-2" style={{ color: SLATE }}>Password</span>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={mode === "signin" ? "current-password" : "new-password"} className="w-full rounded-lg px-4 py-3 text-sm font-mono outline-none" style={{ background: "rgba(18,24,31,0.7)", border: "1px solid #2A3440", color: PAPER }} />
+              </label>
+            )}
+
+            {mode === "reset" && (
+              <label className="block mb-5">
+                <span className="block text-xs tracking-[0.15em] uppercase mb-2" style={{ color: SLATE }}>New password</span>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} autoComplete="new-password" className="w-full rounded-lg px-4 py-3 text-sm font-mono outline-none" style={{ background: "rgba(18,24,31,0.7)", border: "1px solid #2A3440", color: PAPER }} />
+              </label>
+            )}
+
+            {mode === "signin" && (
+              <div className="text-right mb-5">
+                <button
+                  type="button"
+                  onClick={() => { setMode("forgot"); setError(null); setInfo(null); }}
+                  className="text-xs font-mono"
+                  style={{ color: SLATE }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="rounded-lg px-4 py-3 mb-5 text-sm font-mono flex items-center gap-2" style={{ background: "rgba(168,60,50,0.12)", border: "1px solid rgba(168,60,50,0.35)", color: "#E39187" }}>
@@ -140,19 +189,38 @@ export default function AuthGate() {
             )}
 
             <button type="submit" disabled={loading} className="w-full rounded-lg py-3 text-xs font-bold tracking-[0.1em] uppercase font-mono transition" style={{ background: loading ? "#2F7D6E" : JADE, color: INK, cursor: loading ? "default" : "pointer" }}>
-              {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Sign Up"}
+              {loading
+                ? "Please wait…"
+                : mode === "signin"
+                ? "Sign In"
+                : mode === "signup"
+                ? "Sign Up"
+                : mode === "forgot"
+                ? "Send Reset Link"
+                : "Update Password"}
             </button>
           </form>
 
           <div className="text-center py-4" style={{ borderTop: "1px solid #2A3440" }}>
-            <button
-              type="button"
-              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setInfo(null); }}
-              className="text-xs font-mono underline"
-              style={{ color: SLATE }}
-            >
-              {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-            </button>
+            {mode === "forgot" || mode === "reset" ? (
+              <button
+                type="button"
+                onClick={() => { setMode("signin"); setError(null); setInfo(null); }}
+                className="text-xs font-mono underline"
+                style={{ color: SLATE }}
+              >
+                Back to sign in
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); setInfo(null); }}
+                className="text-xs font-mono underline"
+                style={{ color: SLATE }}
+              >
+                {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+              </button>
+            )}
           </div>
         </div>
       </div>
