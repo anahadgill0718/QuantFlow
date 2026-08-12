@@ -3,7 +3,7 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-
+import { supabase } from "./supabaseClient";
 // ---------- Design tokens ----------
 const INK = "#12181F";
 const INK_SOFT = "#1C242E";
@@ -146,26 +146,35 @@ function buildSampleData(monthKeys) {
   return out;
 }
 
-const STORAGE_KEY = "financeDashboard_v1";
+async function loadStateFromSupabase(userId) {
+  const { data, error } = await supabase
+    .from("user_data")
+    .select("ledger_data, budgets, is_sample")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-
-function loadInitialState(defaultMonthKeys) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      if (saved && saved.data) {
-        return {
-          ledgerData: saved.data,
-          isSample: !!saved.isSample,
-          budgets: saved.budgets || DEFAULT_BUDGETS,
-        };
-      }
-    }
-  } catch {
-    // fall through to sample data
+  if (error) {
+    console.error("Failed to load QuantFlow data from Supabase:", error);
+    return null;
   }
-  return { ledgerData: buildSampleData(defaultMonthKeys), isSample: true, budgets: DEFAULT_BUDGETS };
+  if (!data) return null;
+
+  return {
+    ledgerData: data.ledger_data && Object.keys(data.ledger_data).length ? data.ledger_data : null,
+    isSample: !!data.is_sample,
+    budgets: data.budgets && Object.keys(data.budgets).length ? data.budgets : DEFAULT_BUDGETS,
+  };
+}
+
+async function saveStateToSupabase(userId, { ledgerData, isSample, budgets }) {
+  const { error } = await supabase.from("user_data").upsert({
+    user_id: userId,
+    ledger_data: ledgerData,
+    budgets,
+    is_sample: isSample,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) console.error("Failed to save QuantFlow data to Supabase:", error);
 }
 
 const fmt = (n) =>
@@ -263,13 +272,14 @@ function BackgroundArt() {
   );
 }
 
-export default function FinanceDashboard() {
+export default function FinanceDashboard({ userId, onSignOut }) {
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const MONTHS = useMemo(() => getRollingMonths(anchorDate), [anchorDate]);
   const [monthIdx, setMonthIdx] = useState(2);
-  const [ledgerData, setLedgerData] = useState(() => loadInitialState(MONTHS).ledgerData);
-  const [isSample, setIsSample] = useState(() => loadInitialState(MONTHS).isSample);
-  const [budgets, setBudgets] = useState(() => loadInitialState(MONTHS).budgets);
+  const [ledgerData, setLedgerData] = useState(() => buildSampleData(MONTHS));
+  const [isSample, setIsSample] = useState(true);
+  const [budgets, setBudgets] = useState(DEFAULT_BUDGETS);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const CATEGORIES = useMemo(() => Object.keys(budgets), [budgets]);
   const [editingCat, setEditingCat] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -300,12 +310,27 @@ export default function FinanceDashboard() {
   const data = ledgerData[month] || (isSample ? generateSampleMonth(month) : { income: [], expenses: [] });
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: ledgerData, isSample, budgets }));
-    } catch {
-      // localStorage unavailable — data just won't persist between sessions
-    }
-  }, [ledgerData, isSample, budgets]);
+    let cancelled = false;
+    (async () => {
+      const saved = await loadStateFromSupabase(userId);
+      if (cancelled) return;
+      if (saved && saved.ledgerData) {
+        setLedgerData(saved.ledgerData);
+        setIsSample(saved.isSample);
+        setBudgets(saved.budgets);
+      }
+      setDataLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!dataLoaded) return;
+    const timeout = setTimeout(() => {
+      saveStateToSupabase(userId, { ledgerData, isSample, budgets });
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [ledgerData, isSample, budgets, dataLoaded, userId]);
 
   const totals = useMemo(() => {
     const income = data.income.reduce((s, r) => s + r.a, 0);
@@ -672,6 +697,24 @@ export default function FinanceDashboard() {
             <h1 className="font-serif text-4xl md:text-5xl" style={{ color: PAPER }}>QuantFlow</h1>
             <div className="text-xs tracking-[0.3em] uppercase mt-1" style={{ color: SLATE }}>Smart Budget & Expense Analytics</div>
           </div>
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="text-xs uppercase tracking-wide px-3 py-1.5 rounded-full"
+              style={{ color: SLATE, border: `1px solid ${SLATE}` }}
+            >
+              Sign out
+            </button>
+          )}
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="text-xs uppercase tracking-wide px-3 py-1.5 rounded-full"
+              style={{ color: SLATE, border: `1px solid ${SLATE}` }}
+            >
+              Sign out
+            </button>
+          )}
           <div className="flex gap-1 rounded-full p-1" style={{ background: "rgba(28,36,46,0.6)", backdropFilter: "blur(8px)" }}>
             {MONTHS.map((m, i) => (
               <button
