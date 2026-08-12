@@ -706,15 +706,7 @@ export default function FinanceDashboard({ userId, onSignOut }) {
               Sign out
             </button>
           )}
-          {onSignOut && (
-            <button
-              onClick={onSignOut}
-              className="text-xs uppercase tracking-wide px-3 py-1.5 rounded-full"
-              style={{ color: SLATE, border: `1px solid ${SLATE}` }}
-            >
-              Sign out
-            </button>
-          )}
+          
           <div className="flex gap-1 rounded-full p-1" style={{ background: "rgba(28,36,46,0.6)", backdropFilter: "blur(8px)" }}>
             {MONTHS.map((m, i) => (
               <button
