@@ -1,6 +1,6 @@
 # QuantFlow — Smart Budget & Expense Analytics
 
-An interactive personal finance dashboard built with React and Recharts, styled around a "quant terminal meets paper ledger" identity. Goes beyond simple tracking with pace-adjusted budget signals, month-end spend projections, and live spending insights — all computed from your actual data, not decorative. Installable as a PWA on iOS and Android.
+A full-stack personal finance dashboard built with React and Recharts, styled around a "quant terminal meets paper ledger" identity. Goes beyond simple tracking with pace-adjusted budget signals, month-end spend projections, automated recurring transactions, and live spending insights — all computed from your actual data, not decorative. Backed by a secure Supabase database so your data syncs across every device you sign in on. Installable as a PWA on iOS and Android.
 
 ## Live demo
 
@@ -30,6 +30,12 @@ Once installed, it opens full-screen with its own icon, just like a native app.
 - Live-updating quant stats: average monthly spend, 3-month spend volatility (standard deviation), and an overall efficiency rating (Strong / Stable / At Risk)
 - Scrolling ticker strip showing each category's share of spend and its month-over-month change
 
+**Accounts & security**
+- Sign up and sign in with email and password, powered by Supabase Auth
+- Self-service password reset via emailed recovery link
+- Each user's data lives in its own protected database row, enforced with Postgres Row Level Security — no user can ever read or write another user's data
+- Data syncs automatically across every device you sign in on
+
 **Charts**
 - Spending breakdown by category (donut chart)
 - 3-month income vs. expense trend (bar chart)
@@ -43,6 +49,8 @@ Once installed, it opens full-screen with its own icon, just like a native app.
 
 **Transactions**
 - Add income or expense transactions via an in-app form, with comma-friendly amount entry (e.g. 1,000,000)
+- Mark any transaction as recurring — it automatically re-logs itself on the same day every month (e.g. rent, paycheck, subscriptions), with no manual re-entry
+- View, pause, or remove recurring rules at any time
 - Edit or delete any transaction inline
 - Undo toast after deleting a transaction
 - Search/filter the transaction log by merchant or category
@@ -52,13 +60,13 @@ Once installed, it opens full-screen with its own icon, just like a native app.
 **Data portability**
 - Export all transactions across all months as a CSV file
 - Import a CSV to restore or merge in transaction history
-- Data persists in the browser via localStorage between sessions
 
 ## Tech stack
 
 - React
 - Recharts (data visualization)
 - Tailwind CSS (styling)
+- Supabase (PostgreSQL database, authentication, Row Level Security)
 - Progressive Web App (installable on iOS & Android)
 - Vercel Analytics
 - Deployed on Vercel
@@ -70,27 +78,25 @@ npm install
 npm run dev
 ```
 
+You'll also need a Supabase project — see `supabase_schema.sql` for the database schema and Row Level Security policies, and set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in a `.env` file.
+
 ## Data
 
-The app starts with sample data for the current month and the two before it. Add your first real transaction and the sample data clears automatically. All data (transactions and budget limits) is saved to your browser's localStorage, so it persists between visits on the same device and browser. Use the Export CSV button to back up your data, and Import CSV to restore it elsewhere.
+The app starts with sample data for the current month and the two before it. Add your first real transaction and the sample data clears automatically. All data (transactions, budgets, and recurring rules) is stored in a Supabase Postgres database, scoped to your account with Row Level Security, so it's available on any device you sign into. Use the Export CSV button to back up your data, and Import CSV to restore it elsewhere.
 
 ## Roadmap
 
-- Add real persistence (e.g. Firebase, Supabase, or a small Express + database backend) so data syncs across devices instead of living in one browser
-- Recurring transactions (e.g. auto-add rent each month)
-- Multi-user support with authentication
 - Native App Store / Google Play release
 
 
 
 ## Screenshot
-<img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 19 41 PM" src="https://github.com/user-attachments/assets/c19369ac-6fde-436c-a31d-4cbd4d86a3cc" />
-<img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 19 57 PM" src="https://github.com/user-attachments/assets/0bf3c259-9951-41b8-9b2d-ada7f383f6ad" />
-<img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 20 04 PM" src="https://github.com/user-attachments/assets/86e15f1f-d40c-409e-b893-f268c99c5c8b" />
+<img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 19 41 PM" src="https://github.com/user-attachments/assets/c19369ac-6fde-436c-a31d-4cbd4d86a3cc" />
+<img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 19 57 PM" src="https://github.com/user-attachments/assets/0bf3c259-9951-41b8-9b2d-ada7f383f6ad" />
+<img width="1512" height="982" alt="Screenshot 2026-07-31 at 6 20 04 PM" src="https://github.com/user-attachments/assets/86e15f1f-d40c-409e-b893-f268c99c5c8b" />
 
 
 
 ## Author
 
 Created by Anahad Gill
-
