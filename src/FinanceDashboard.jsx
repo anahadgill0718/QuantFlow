@@ -149,7 +149,7 @@ function buildSampleData(monthKeys) {
 async function loadStateFromSupabase(userId) {
   const { data, error } = await supabase
     .from("user_data")
-    .select("ledger_data, budgets, is_sample")
+    .select("ledger_data, budgets, is_sample, recurring")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -163,15 +163,17 @@ async function loadStateFromSupabase(userId) {
     ledgerData: data.ledger_data && Object.keys(data.ledger_data).length ? data.ledger_data : null,
     isSample: !!data.is_sample,
     budgets: data.budgets && Object.keys(data.budgets).length ? data.budgets : DEFAULT_BUDGETS,
+    recurring: Array.isArray(data.recurring) ? data.recurring : [],
   };
 }
 
-async function saveStateToSupabase(userId, { ledgerData, isSample, budgets }) {
+async function saveStateToSupabase(userId, { ledgerData, isSample, budgets, recurring }) {
   const { error } = await supabase.from("user_data").upsert({
     user_id: userId,
     ledger_data: ledgerData,
     budgets,
     is_sample: isSample,
+    recurring,
     updated_at: new Date().toISOString(),
   });
   if (error) console.error("Failed to save QuantFlow data to Supabase:", error);
@@ -280,6 +282,7 @@ export default function FinanceDashboard({ userId, onSignOut }) {
   const [isSample, setIsSample] = useState(true);
   const [budgets, setBudgets] = useState(DEFAULT_BUDGETS);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [recurringRules, setRecurringRules] = useState([]);
   const CATEGORIES = useMemo(() => Object.keys(budgets), [budgets]);
   const [editingCat, setEditingCat] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -293,6 +296,7 @@ export default function FinanceDashboard({ userId, onSignOut }) {
     amount: "",
     type: "expense",
     date: new Date().toISOString().slice(0, 10),
+    makeRecurring: false,
   });
   const [justAdded, setJustAdded] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -319,6 +323,7 @@ export default function FinanceDashboard({ userId, onSignOut }) {
         setIsSample(saved.isSample);
         setBudgets(saved.budgets);
       }
+      if (saved && saved.recurring) setRecurringRules(saved.recurring);
       setDataLoaded(true);
     })();
     return () => { cancelled = true; };
@@ -327,10 +332,43 @@ export default function FinanceDashboard({ userId, onSignOut }) {
   useEffect(() => {
     if (!dataLoaded) return;
     const timeout = setTimeout(() => {
-      saveStateToSupabase(userId, { ledgerData, isSample, budgets });
+      saveStateToSupabase(userId, { ledgerData, isSample, budgets, recurring: recurringRules });
     }, 600);
     return () => clearTimeout(timeout);
-  }, [ledgerData, isSample, budgets, dataLoaded, userId]);
+  }, [ledgerData, isSample, budgets, recurringRules, dataLoaded, userId]);
+
+  useEffect(() => {
+    if (!dataLoaded || recurringRules.length === 0) return;
+    const now = new Date();
+    const currentMonthKey = now.toLocaleString("en-US", { month: "short", year: "numeric" });
+    const today = now.getDate();
+
+    const due = recurringRules.filter(
+      (r) => r.active !== false && r.lastAppliedMonth !== currentMonthKey && today >= r.dayOfMonth
+    );
+    if (due.length === 0) return;
+
+    setLedgerData((prev) => {
+      const base = isSample
+        ? MONTHS.reduce((acc, key) => ({ ...acc, [key]: { income: [], expenses: [] } }), {})
+        : prev;
+      const current = base[currentMonthKey] || { income: [], expenses: [] };
+      const next = { ...base, [currentMonthKey]: { income: [...current.income], expenses: [...current.expenses] } };
+
+      due.forEach((rule) => {
+        const dayStr = String(rule.dayOfMonth).padStart(2, "0");
+        const entry = { id: newId(), d: dayStr, m: rule.merchant, a: rule.amount, rid: rule.id };
+        if (rule.type === "income") next[currentMonthKey].income.push(entry);
+        else next[currentMonthKey].expenses.push({ ...entry, c: rule.category });
+      });
+      return next;
+    });
+    if (isSample) setIsSample(false);
+
+    setRecurringRules((prev) =>
+      prev.map((r) => (due.find((d) => d.id === r.id) ? { ...r, lastAppliedMonth: currentMonthKey } : r))
+    );
+  }, [dataLoaded, recurringRules, isSample, MONTHS]);
 
   const totals = useMemo(() => {
     const income = data.income.reduce((s, r) => s + r.a, 0);
@@ -447,7 +485,7 @@ export default function FinanceDashboard({ userId, onSignOut }) {
     return `${top.name} is your biggest expense this month at ${fmt(top.value)}.`;
   }, [byCategory, totals, monthIdx, MONTHS, ledgerData, isSample]);
 
-  const handleAddTransaction = (e) => {
+const handleAddTransaction = (e) => {
     e.preventDefault();
     const amt = parseFloat(form.amount.replace(/,/g, ""));
     if (!form.merchant.trim()) {
@@ -460,8 +498,10 @@ export default function FinanceDashboard({ userId, onSignOut }) {
     }
     setFormError(null);
 
-    const dayOfMonth = String(new Date(form.date + "T00:00:00").getDate()).padStart(2, "0");
-    const entry = { id: newId(), d: dayOfMonth, m: form.merchant.trim(), a: Math.round(amt * 100) / 100 };
+    const dateObj = new Date(form.date + "T00:00:00");
+    const dayOfMonth = String(dateObj.getDate()).padStart(2, "0");
+    const roundedAmt = Math.round(amt * 100) / 100;
+    const entry = { id: newId(), d: dayOfMonth, m: form.merchant.trim(), a: roundedAmt };
 
     setLedgerData((prev) => {
       // First real transaction clears the sample data so it doesn't confuse the numbers
@@ -481,9 +521,34 @@ export default function FinanceDashboard({ userId, onSignOut }) {
 
     if (isSample) setIsSample(false);
 
-    setForm((f) => ({ merchant: "", category: CATEGORIES[0], amount: "", type: "expense", date: f.date }));
+    if (form.makeRecurring) {
+      const currentMonthKey = new Date().toLocaleString("en-US", { month: "short", year: "numeric" });
+      setRecurringRules((prev) => [
+        ...prev,
+        {
+          id: newId(),
+          merchant: form.merchant.trim(),
+          amount: roundedAmt,
+          category: form.category,
+          type: form.type,
+          dayOfMonth: dateObj.getDate(),
+          active: true,
+          lastAppliedMonth: month === currentMonthKey ? currentMonthKey : null,
+        },
+      ]);
+    }
+
+    setForm((f) => ({ merchant: "", category: CATEGORIES[0], amount: "", type: "expense", date: f.date, makeRecurring: false }));
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
+  };
+
+  const handleDeleteRecurringRule = (id) => {
+    setRecurringRules((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const handleToggleRecurringRule = (id) => {
+    setRecurringRules((prev) => prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
   };
 
   const handleLoadSample = () => {
@@ -706,7 +771,7 @@ export default function FinanceDashboard({ userId, onSignOut }) {
               Sign out
             </button>
           )}
-          
+
           <div className="flex gap-1 rounded-full p-1" style={{ background: "rgba(28,36,46,0.6)", backdropFilter: "blur(8px)" }}>
             {MONTHS.map((m, i) => (
               <button
@@ -1089,6 +1154,15 @@ export default function FinanceDashboard({ userId, onSignOut }) {
                   <div className="text-xs mb-2" style={{ color: "#7A2E24" }}>{formError}</div>
                 )}
 
+                <label className="flex items-center gap-2 mb-3 text-xs font-mono cursor-pointer" style={{ color: "#6B655A" }}>
+                  <input
+                    type="checkbox"
+                    checked={form.makeRecurring}
+                    onChange={(e) => setForm((f) => ({ ...f, makeRecurring: e.target.checked }))}
+                  />
+                  Repeat monthly on day {new Date(form.date + "T00:00:00").getDate()}
+                </label>
+
                 <button
                   type="submit"
                   className="w-full text-sm font-mono py-2 rounded uppercase tracking-wide"
@@ -1097,6 +1171,42 @@ export default function FinanceDashboard({ userId, onSignOut }) {
                   {justAdded ? "Added ✓" : `+ Add to ${month}`}
                 </button>
               </form>
+
+              {recurringRules.length > 0 && (
+                <div className="mb-5 pb-5 border-b border-dashed" style={{ borderColor: "#B9AF9E" }}>
+                  <div className="text-xs font-mono uppercase tracking-wide mb-2" style={{ color: "#8A8072" }}>
+                    Recurring ({recurringRules.filter((r) => r.active !== false).length} active)
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {recurringRules.map((rule) => (
+                      <div key={rule.id} className="flex items-center justify-between text-xs font-mono">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRecurringRule(rule.id)}
+                          className="flex items-center gap-2 text-left flex-1"
+                          style={{ color: rule.active === false ? "#B0A692" : INK, opacity: rule.active === false ? 0.6 : 1 }}
+                        >
+                          <span>{rule.active === false ? "○" : "●"}</span>
+                          <span>{rule.merchant}</span>
+                          <span style={{ color: "#8A8072" }}>· day {rule.dayOfMonth}</span>
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <span style={{ color: rule.type === "income" ? "#1E6B5C" : "#7A2E24" }}>
+                            {fmt(rule.amount)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRecurringRule(rule.id)}
+                            style={{ color: "#B0A692" }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <input
                 type="text"
