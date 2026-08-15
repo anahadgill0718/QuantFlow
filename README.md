@@ -4,7 +4,7 @@ A full-stack personal finance dashboard built with React and Recharts, styled ar
 
 ## Live demo
 
-**[quantflowapp.com](https://quantflowapp.com)**
+**[quantflowapp.com](https://quantflowapp.com)** — opens on a marketing landing page (the site's own "quant terminal meets paper ledger" identity carried through into a scroll-driven hero) before handing off to sign-in.
 
 ## Install as an app
 
