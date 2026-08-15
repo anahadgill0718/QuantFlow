@@ -262,7 +262,7 @@ export default function LandingPage({ onSignIn }) {
       <style>{`
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        .serif { font-family: 'Lora', Georgia, 'Times New Roman', serif; }
+        .serif { font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif; }
         .mono { font-family: 'IBM Plex Mono', monospace; }
         @keyframes blink { 0%, 45% { opacity: 1; } 50%, 95% { opacity: 0; } 100% { opacity: 1; } }
         .cursor { animation: blink 1.1s step-end infinite; }
@@ -273,10 +273,10 @@ export default function LandingPage({ onSignIn }) {
         .rise { animation: rise 0.8s cubic-bezier(.16,.84,.44,1) both; }
         .leader {
           flex: 1;
-          border-bottom: 1px dotted currentColor;
-          opacity: 0.35;
           margin: 0 8px;
-          transform: translateY(-4px);
+          border-bottom: 2px dotted currentColor;
+          opacity: 0.6;
+          transform: translateY(-6px);
         }
         @media (prefers-reduced-motion: reduce) {
           .cursor { animation: none; opacity: 1; }
@@ -409,7 +409,57 @@ export default function LandingPage({ onSignIn }) {
           className="sticky top-0 h-screen flex items-center justify-center px-6 overflow-hidden"
           style={{ background: bg, transition: "background 0.05s linear" }}
         >
-          <div className="max-w-2xl w-full text-center">
+          {/* dark-mode grid, fades out as the page turns to paper */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)",
+              backgroundSize: "42px 42px",
+              opacity: Math.max(0, 1 - swing * 1.6),
+            }}
+          />
+          {/* dark grid lines, visible on the paper side and through the muddy midpoint */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px)",
+              backgroundSize: "42px 42px",
+              opacity: Math.min(1, swing * 1.6),
+            }}
+          />
+          {/* paper-mode ruled lines, fades in as the page turns to paper */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(transparent, transparent 43px, #8C7A54 44px)",
+              opacity: Math.max(0, swing * 1.6 - 0.6) * 0.5,
+            }}
+          />
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: "-5%",
+              right: "-6%",
+              width: "44%",
+              opacity: Math.max(0, 1 - swing * 1.8) * 0.5,
+            }}
+          >
+            <svg viewBox="0 0 400 300" preserveAspectRatio="none">
+              <polyline
+                points="0,260 60,235 110,245 150,190 190,205 230,140 270,155 320,70 400,20"
+                fill="none"
+                stroke="#D6A83E"
+                strokeWidth="1.4"
+              />
+              <rect x="146" y="178" width="6" height="24" fill="#4CAE9C" opacity="0.8" />
+              <rect x="266" y="145" width="6" height="20" fill="#BF5240" opacity="0.8" />
+            </svg>
+          </div>
+
+          <div className="max-w-2xl w-full text-center relative">
             <p
               className="mono text-xs mb-8"
               style={{ color: accent, letterSpacing: "0.2em" }}
@@ -546,9 +596,25 @@ export default function LandingPage({ onSignIn }) {
       </section>
 
       {/* CLOSING CTA — paper ledger receipt, matches the add-transaction screen */}
-      <section className="px-6 md:px-10 py-28" style={{ background: "#EDE3CE" }}>
+      <section className="relative px-6 md:px-10 py-28 overflow-hidden" style={{ background: "#EDE3CE" }}>
         <div
-          className="max-w-md mx-auto text-center p-8 rounded-md"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px)",
+            backgroundSize: "42px 42px",
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(transparent, transparent 43px, #8C7A54 44px)",
+            opacity: 0.35,
+          }}
+        />
+        <div
+          className="max-w-md mx-auto text-center p-8 rounded-md relative"
           style={{ background: "#F4EEDD", border: "1px solid #C9BFA0" }}
         >
           <p className="mono text-xs" style={{ color: "#8C7A54", letterSpacing: "0.15em" }}>
