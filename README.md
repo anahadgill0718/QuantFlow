@@ -91,9 +91,9 @@ The app starts with sample data for the current month and the two before it. Add
 
 
 ## Screenshot
-<img width="1512" height="860" alt="Screenshot 2026-08-15 at 11 54 19 PM" src="https://github.com/user-attachments/assets/badc1462-ac3e-4149-86ce-ce7d4cc6b2ef" />
-<img width="1512" height="860" alt="Screenshot 2026-08-15 at 11 54 09 PM" src="https://github.com/user-attachments/assets/d0a2cfc4-1563-46d2-8025-4144d4fdab0c" />
 <img width="1497" height="860" alt="Screenshot 2026-08-15 at 11 53 51 PM" src="https://github.com/user-attachments/assets/a8be240b-a445-4ae1-89c1-46750591c3c4" />
+<img width="1512" height="860" alt="Screenshot 2026-08-15 at 11 54 09 PM" src="https://github.com/user-attachments/assets/d0a2cfc4-1563-46d2-8025-4144d4fdab0c" />
+<img width="1512" height="860" alt="Screenshot 2026-08-15 at 11 54 19 PM" src="https://github.com/user-attachments/assets/badc1462-ac3e-4149-86ce-ce7d4cc6b2ef" />
 
 
 
